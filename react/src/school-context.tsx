@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer } from "react";
+import { createContext, useContext, useReducer } from 'react';
 
 export type Student = {
   id: string;
@@ -11,16 +11,40 @@ export type Teacher = {
   students: string[];
 };
 
+export type Assignment = {
+  id: string;
+  name: string;
+  teacherId: Teacher['id'];
+  dueDate: string;
+};
+
+export type Submission = {
+  teacherId: Teacher['id'];
+  studentId: Student['id'];
+  assignmentId: Assignment['id'];
+  date: string;
+  grade?: SumbissionGrade;
+};
+
 export type InitialState = {
   teachers: Teacher[];
   students: Student[];
+  assignments: Assignment[];
+  submissions: Submission[];
 };
 
+export enum SumbissionGrade {
+  FAIL = 'FAIL',
+  PASS = 'PASS',
+}
+
 export enum SchoolActionKind {
-  ADD_TEACHER = "ADD_TEACHER",
-  ADD_STUDENT = "ADD_STUDENT",
-  UPDATE_STUDENT = "UPDATE_STUDENT",
-  ASSIGN_STUDENT_TO_TEACHER = "ASSIGN_STUDENT_TO_TEACHER",
+  ADD_TEACHER = 'ADD_TEACHER',
+  ADD_STUDENT = 'ADD_STUDENT',
+  UPDATE_STUDENT = 'UPDATE_STUDENT',
+  ASSIGN_STUDENT_TO_TEACHER = 'ASSIGN_STUDENT_TO_TEACHER',
+  ADD_ASSIGNMENT = 'ADD_ASSIGNMENT',
+  ADD_OR_UPDATE_SUBMISSION = 'ADD_OR_UPDATE_SUBMISSION',
 }
 
 export type SchoolAction =
@@ -42,6 +66,14 @@ export type SchoolAction =
         teacherId: string;
         studentId: string;
       };
+    }
+  | {
+      type: SchoolActionKind.ADD_ASSIGNMENT;
+      payload: Assignment;
+    }
+  | {
+      type: SchoolActionKind.ADD_OR_UPDATE_SUBMISSION;
+      payload: Submission;
     };
 
 const SchoolContext = createContext<InitialState | null>(null);
@@ -100,6 +132,26 @@ export function schoolReducer(
         }
       }
       return { ...state, teachers: updatedTeacher };
+    case SchoolActionKind.ADD_ASSIGNMENT:
+      return {
+        ...state,
+        assignments: [...state.assignments, action.payload],
+      };
+    case SchoolActionKind.ADD_OR_UPDATE_SUBMISSION:
+      const updatedSubmissions: Submission[] = [...state.submissions];
+      const updateIndex = state.submissions.findIndex(
+        (submission) =>
+          submission.assignmentId === action.payload.assignmentId &&
+          submission.studentId === action.payload.studentId
+      );
+      if (updateIndex === -1) updatedSubmissions.push(action.payload);
+      updatedSubmissions.splice(updateIndex, 1, action.payload);
+
+      return {
+        ...state,
+        submissions: updatedSubmissions,
+      };
+
     default:
       return state;
   }
@@ -108,4 +160,6 @@ export function schoolReducer(
 const initialState: InitialState = {
   teachers: [],
   students: [],
+  assignments: [],
+  submissions: [],
 };
